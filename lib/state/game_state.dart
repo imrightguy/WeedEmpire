@@ -61,10 +61,41 @@ class GameEvent {
   });
 }
 
+class GameLocation {
+  final String id;
+  final String name;
+  final String description;
+  final double cost;
+  final double stashBoost;
+  final String assetPath;
+
+  GameLocation({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.cost,
+    required this.stashBoost,
+    required this.assetPath,
+  });
+}
+
 class GameState extends ChangeNotifier {
   double _cash = 0.0;
   double _weedStash = 0.0;
   final double _weedPrice = 10.0; // $10 per gram
+
+  // Locations
+  int _currentLocationIndex = 0;
+  int get currentLocationIndex => _currentLocationIndex;
+
+  final List<GameLocation> locations = [
+    GameLocation(id: 'rv_park', name: 'Shady RV Park', description: 'Where it all began.', cost: 0, stashBoost: 0, assetPath: 'trailer_park_bg.png'),
+    GameLocation(id: 'garage', name: 'Suburban Garage', description: 'A quiet place in the burbs.', cost: 5000, stashBoost: 500, assetPath: 'garage_bg.png'), // Will add asset later, or fallback
+    GameLocation(id: 'bunker', name: 'Underground Bunker', description: 'High tech, high capacity.', cost: 50000, stashBoost: 5000, assetPath: 'bunker_bg.png'),
+    GameLocation(id: 'mansion', name: 'Cartel Mansion', description: 'You made it.', cost: 500000, stashBoost: 50000, assetPath: 'mansion_bg.png'),
+  ];
+
+  GameLocation get currentLocation => locations[_currentLocationIndex];
 
   // Events
   GameEvent? activeEvent;
@@ -112,7 +143,7 @@ class GameState extends ChangeNotifier {
   int get totalBusts => _totalBusts;
 
   double get maxStash {
-    return _baseMaxStash + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.maxStashBoost));
+    return _baseMaxStash + currentLocation.stashBoost + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.maxStashBoost));
   }
   
   double get autoGrowRate {
@@ -145,6 +176,7 @@ class GameState extends ChangeNotifier {
     _streetCred = prefs.getInt('streetCred') ?? 0;
     _totalBusts = prefs.getInt('totalBusts') ?? 0;
     _enableVisualUpgrades = prefs.getBool('visuals') ?? true;
+    _currentLocationIndex = prefs.getInt('locationIndex') ?? 0;
 
     final String? upgradesJson = prefs.getString('upgrades');
     if (upgradesJson != null) {
@@ -202,6 +234,7 @@ class GameState extends ChangeNotifier {
     await prefs.setInt('streetCred', _streetCred);
     await prefs.setInt('totalBusts', _totalBusts);
     await prefs.setBool('visuals', _enableVisualUpgrades);
+    await prefs.setInt('locationIndex', _currentLocationIndex);
     
     final encodedUpgrades = jsonEncode(upgrades.map((u) => u.toJson()).toList());
     await prefs.setString('upgrades', encodedUpgrades);
@@ -329,6 +362,18 @@ class GameState extends ChangeNotifier {
       upgrade.level++;
       notifyListeners();
       _saveData();
+    }
+  }
+
+  void buyLocation(int index) {
+    if (index > _currentLocationIndex && index < locations.length) {
+      final loc = locations[index];
+      if (_cash >= loc.cost) {
+        _cash -= loc.cost;
+        _currentLocationIndex = index;
+        notifyListeners();
+        _saveData();
+      }
     }
   }
 

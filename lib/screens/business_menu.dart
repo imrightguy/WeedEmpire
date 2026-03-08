@@ -224,22 +224,41 @@ class BusinessMenu extends StatelessWidget {
 
   // --- TAB 3: THE OFFICE (Employees & Real Estate - Phase 4) ---
   Widget _buildOfficeView(BuildContext context, GameState gameState) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-             Icon(Icons.construction, size: 64, color: Colors.white54),
-             const SizedBox(height: 16),
-             Text('THE OFFICE', style: GoogleFonts.bangers(fontSize: 32, color: Colors.white54)),
-             const Text(
-               'Future home of Employee Management, Real Estate, and Character Gacha rolls. Coming soon.',
-               textAlign: TextAlign.center,
-               style: TextStyle(color: Colors.white54),
-             )
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Real Estate Market', style: GoogleFonts.bangers(fontSize: 24, color: Colors.white)),
+          const Divider(color: Colors.white54),
+          Expanded(
+            child: ListView.builder(
+              itemCount: gameState.locations.length,
+              itemBuilder: (context, index) {
+                final loc = gameState.locations[index];
+                
+                final isCurrent = index == gameState.currentLocationIndex;
+                final isOwned = index <= gameState.currentLocationIndex;
+                final canAfford = gameState.cash >= loc.cost;
+                
+                return Card(
+                  color: isCurrent ? Colors.purple[900] : Colors.grey[850],
+                  child: ListTile(
+                    title: Text(loc.name, style: GoogleFonts.oswald(fontSize: 18, color: Colors.white)),
+                    subtitle: Text('${loc.description}\nMax Stash Boost: +${loc.stashBoost.toStringAsFixed(0)}g', style: const TextStyle(color: Colors.white70)),
+                    trailing: isOwned 
+                      ? Text(isCurrent ? 'ACTIVE' : 'OWNED', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))
+                      : ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: canAfford ? Colors.orange : Colors.grey),
+                          onPressed: canAfford ? () => context.read<GameState>().buyLocation(index) : null,
+                          child: Text('\$${loc.cost.toStringAsFixed(2)}'),
+                        ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

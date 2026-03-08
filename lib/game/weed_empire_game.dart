@@ -10,6 +10,8 @@ class WeedEmpireGame extends FlameGame with HasCollisionDetection {
   late final SpriteComponent _background;
   late final SpriteComponent _weedPlant;
   late final CustomerSpawner _customerSpawner;
+  
+  String _currentBgAsset = '';
 
   WeedEmpireGame({required this.gameState});
 
@@ -21,7 +23,8 @@ class WeedEmpireGame extends FlameGame with HasCollisionDetection {
     super.onLoad();
 
     // Load background
-    final bgSprite = await loadSprite('trailer_park_bg.png');
+    _currentBgAsset = gameState.currentLocation.assetPath;
+    final bgSprite = await loadSprite(_currentBgAsset);
     _background = SpriteComponent(
       sprite: bgSprite,
       size: Vector2(size.x, size.y), // Scale to fill the screen initially
@@ -55,6 +58,16 @@ class WeedEmpireGame extends FlameGame with HasCollisionDetection {
     super.update(dt);
     // Drive the idle simulation forward based on the real-time game loop
     gameState.tick(dt);
+    
+    // Check if location changed
+    if (isLoaded && _currentBgAsset != gameState.currentLocation.assetPath) {
+      _currentBgAsset = gameState.currentLocation.assetPath;
+      _updateBackgroundSprite();
+    }
+  }
+
+  Future<void> _updateBackgroundSprite() async {
+    _background.sprite = await loadSprite(_currentBgAsset);
   }
 
   @override
