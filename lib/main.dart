@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flame/game.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'state/game_state.dart';
 import 'screens/responsive_layout.dart';
 import 'screens/business_menu.dart';
@@ -33,6 +34,7 @@ class WeedEmpireApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         primaryColor: Colors.green,
         scaffoldBackgroundColor: Colors.black,
+        textTheme: GoogleFonts.oswaldTextTheme(ThemeData.dark().textTheme),
       ),
       home: Consumer<GameState>(
         builder: (context, gameState, child) {

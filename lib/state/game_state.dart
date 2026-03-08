@@ -41,10 +41,36 @@ class Upgrade {
   }
 }
 
+class GameEvent {
+  final String id;
+  final String title;
+  final String description;
+  final int durationSeconds;
+  
+  // Effects
+  final double autoGrowModifier;
+  final double customerSpawnModifier;
+
+  GameEvent({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.durationSeconds,
+    this.autoGrowModifier = 1.0,
+    this.customerSpawnModifier = 1.0,
+  });
+}
+
 class GameState extends ChangeNotifier {
   double _cash = 0.0;
   double _weedStash = 0.0;
   final double _weedPrice = 10.0; // $10 per gram
+
+  // Events
+  GameEvent? activeEvent;
+  double _eventTimeRemaining = 0;
+  double _customerSpawnModifier = 1.0;
+  double get customerSpawnModifier => _customerSpawnModifier;
 
   // Prestige / Meta variables
   int _streetCred = 0;
@@ -183,6 +209,9 @@ class GameState extends ChangeNotifier {
     await prefs.setInt('lastSaved', DateTime.now().millisecondsSinceEpoch);
   }
 
+  double _timeSinceLastEvent = 0;
+  final double _eventCooldown = 60.0; // 60s cooldown
+
   // --- Game Mechanics ---
 
   void tick(double dt) {
@@ -190,8 +219,28 @@ class GameState extends ChangeNotifier {
     
     bool changed = false;
 
+    // Event Loop
+    if (activeEvent != null) {
+       _eventTimeRemaining -= dt;
+       if (_eventTimeRemaining <= 0) {
+          activeEvent = null;
+          _customerSpawnModifier = 1.0;
+          _timeSinceLastEvent = 0;
+          changed = true;
+       }
+    } else {
+       _timeSinceLastEvent += dt;
+       if (_timeSinceLastEvent > _eventCooldown) {
+          // Check roughly once per second using a simple probability
+          if (DateTime.now().millisecond % 1000 < 10) { 
+             _triggerRandomEvent();
+             changed = true;
+          }
+       }
+    }
+
     if (autoGrowRate > 0) {
-      double generated = autoGrowRate * dt;
+      double generated = (autoGrowRate * (activeEvent?.autoGrowModifier ?? 1.0)) * dt;
       if (_weedStash < maxStash) {
         _weedStash += generated;
         if (_weedStash > maxStash) {
@@ -202,7 +251,8 @@ class GameState extends ChangeNotifier {
     }
 
     if (autoSellRate > 0) {
-      double sold = autoSellRate * dt;
+      // Auto-sell is affected by customer spawn modifier conceptually
+      double sold = (autoSellRate * (activeEvent?.customerSpawnModifier ?? 1.0)) * dt;
       if (sold > _weedStash) {
         sold = _weedStash; // Don't sell more than we have
       }
@@ -217,6 +267,29 @@ class GameState extends ChangeNotifier {
       notifyListeners();
       // Throttling save to avoid writing thousands of times per second
       _throttleSave(); 
+    }
+  }
+
+  void _triggerRandomEvent() {
+    activeEvent = GameEvent(
+       id: 'fake_news',
+       title: 'FAKE NEWS SMEAR',
+       description: 'The Elite Cabal claims your weed causes dancing!\nCustomers are staying away.',
+       durationSeconds: 30,
+       customerSpawnModifier: 0.2, // 80% drop in speed/spawning
+    );
+    _eventTimeRemaining = activeEvent!.durationSeconds.toDouble();
+    _customerSpawnModifier = activeEvent!.customerSpawnModifier;
+  }
+
+  void resolveEventWithCred() {
+    if (activeEvent != null && _streetCred >= 10) {
+       _streetCred -= 10;
+       activeEvent = null;
+       _customerSpawnModifier = 1.0;
+       _timeSinceLastEvent = 0;
+       notifyListeners();
+       _saveData();
     }
   }
 

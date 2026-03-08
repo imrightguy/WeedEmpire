@@ -21,7 +21,8 @@ class CustomerSpawner extends Component with HasGameReference<WeedEmpireGame> {
     _timer += dt;
     if (_timer >= _nextSpawnTime) {
       _timer = 0;
-      _nextSpawnTime = _random.nextDouble() * 5 + 3; // 3 to 8 seconds
+      double baseSpawnTime = _random.nextDouble() * 5 + 3; // 3 to 8 seconds
+      _nextSpawnTime = baseSpawnTime / gameState.customerSpawnModifier;
 
       // Only spawn if we don't have too many already (cap at 5 max on screen)
       if (game.children.whereType<CustomerComponent>().length < 5) {
