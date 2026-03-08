@@ -1,10 +1,10 @@
 # Weed Empire
 
 A multiplatform (Mobile & Desktop) idle growing and business simulation game built with Flutter and the Flame Engine. 
-The game features a gritty, cartoon-vector aesthetic inspired by *Trailer Park Boys*.
+The game features a gritty, satirical, cartoon-vector aesthetic.
 
 ## Game Vision
-The goal of Weed Empire is to grow from a small-time trailer park operation into a massive, multi-location cartel. Players will manage resources, hire eccentric characters, deal with dynamic market fluctuations, and avoid (or bribe) the authorities. 
+The goal of Weed Empire is to grow from a small-time RV park operation into a massive, multi-location enterprise. Players will manage resources, hire eccentric characters, deal with dynamic market fluctuations, and avoid (or bribe) the authorities. 
 
 The game is designed with a long-term progression loop in mind, focusing on player retention and eventual monetization through strategic in-app purchases and optional rewarded ads.
 
