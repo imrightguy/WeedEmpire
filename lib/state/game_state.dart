@@ -1,6 +1,34 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+enum EmployeeRarity { common, rare, epic, legendary }
+
+class Employee {
+  final String id;
+  final String name;
+  final EmployeeRarity rarity;
+  final String description;
+  final String role; // 'lab', 'streets', or 'office'
+
+  final double growSpeedMultiplier;
+  final double sellSpeedMultiplier;
+  final double maxStashMultiplier;
+  final double streetCredMultiplier;
+
+  Employee({
+    required this.id,
+    required this.name,
+    required this.rarity,
+    required this.description,
+    required this.role,
+    this.growSpeedMultiplier = 1.0,
+    this.sellSpeedMultiplier = 1.0,
+    this.maxStashMultiplier = 1.0,
+    this.streetCredMultiplier = 1.0,
+  });
+}
 
 class Strain {
   final String id;
@@ -163,6 +191,84 @@ class GameState extends ChangeNotifier {
   double _customerSpawnModifier = 1.0;
   double get customerSpawnModifier => _customerSpawnModifier;
 
+  // Employees System
+  final List<Employee> availableEmployees = [
+    Employee(id: 'c1', name: 'Trailer Park Trimmer', rarity: EmployeeRarity.common, role: 'lab', description: '+5% Grow Speed', growSpeedMultiplier: 1.05),
+    Employee(id: 'c2', name: 'Corner Look-out', rarity: EmployeeRarity.common, role: 'streets', description: '+5% Sell Speed', sellSpeedMultiplier: 1.05),
+    Employee(id: 'c3', name: 'Shady Bookkeeper', rarity: EmployeeRarity.common, role: 'office', description: '+5% Max Stash', maxStashMultiplier: 1.05),
+
+    Employee(id: 'r1', name: 'Botany Student', rarity: EmployeeRarity.rare, role: 'lab', description: '+15% Grow Speed', growSpeedMultiplier: 1.15),
+    Employee(id: 'r2', name: 'Smooth Talker', rarity: EmployeeRarity.rare, role: 'streets', description: '+15% Sell Speed', sellSpeedMultiplier: 1.15),
+    Employee(id: 'r3', name: 'Cartel Accountant', rarity: EmployeeRarity.rare, role: 'office', description: '+10% Max Stash', maxStashMultiplier: 1.10),
+
+    Employee(id: 'e1', name: 'Mad Scientist', rarity: EmployeeRarity.epic, role: 'lab', description: '+50% Grow Speed', growSpeedMultiplier: 1.50),
+    Employee(id: 'e2', name: 'Corrupt Cop', rarity: EmployeeRarity.epic, role: 'streets', description: '+50% Street Cred on Bust', streetCredMultiplier: 1.50),
+    Employee(id: 'e3', name: 'Slick Politician', rarity: EmployeeRarity.epic, role: 'office', description: '+50% Max Stash', maxStashMultiplier: 1.50),
+
+    Employee(id: 'l1', name: 'Master Botanist', rarity: EmployeeRarity.legendary, role: 'lab', description: '+100% Grow & Sell Speed', growSpeedMultiplier: 2.0, sellSpeedMultiplier: 2.0),
+    Employee(id: 'l2', name: 'Cartel Boss', rarity: EmployeeRarity.legendary, role: 'office', description: '+100% Street Cred & Stash', maxStashMultiplier: 2.0, streetCredMultiplier: 2.0),
+  ];
+
+  List<String> ownedEmployees = [];
+  Map<String, String?> equippedEmployees = {
+    'lab': null,
+    'streets': null,
+    'office': null,
+  };
+
+  void rollEmployee(double cost) {
+    if (_cash >= cost) {
+      _cash -= cost;
+      double roll = Random().nextDouble();
+      EmployeeRarity hitRarity;
+      if (roll < 0.01) { hitRarity = EmployeeRarity.legendary; }
+      else if (roll < 0.10) { hitRarity = EmployeeRarity.epic; }
+      else if (roll < 0.40) { hitRarity = EmployeeRarity.rare; }
+      else { hitRarity = EmployeeRarity.common; }
+
+      final possible = availableEmployees.where((e) => e.rarity == hitRarity).toList();
+      final hit = possible[Random().nextInt(possible.length)];
+      
+      if (!ownedEmployees.contains(hit.id)) {
+        ownedEmployees.add(hit.id);
+      } else {
+        // Duplicate compensation
+        _streetCred += 1;
+      }
+      notifyListeners();
+      _saveData();
+    }
+  }
+
+  void equipEmployee(String id, String role) {
+    if (ownedEmployees.contains(id)) {
+      final emp = availableEmployees.firstWhere((e) => e.id == id);
+      if (emp.role == role) {
+        equippedEmployees[role] = id;
+        notifyListeners();
+        _saveData();
+      }
+    }
+  }
+
+  void unequipEmployee(String role) {
+    equippedEmployees[role] = null;
+    notifyListeners();
+    _saveData();
+  }
+
+  Employee? getEquippedForRole(String role) {
+    if (equippedEmployees[role] != null) {
+      return availableEmployees.firstWhere((e) => e.id == equippedEmployees[role]);
+    }
+    return null;
+  }
+
+  double get employeeGrowMultiplier => (getEquippedForRole('lab')?.growSpeedMultiplier ?? 1.0) * (getEquippedForRole('office')?.growSpeedMultiplier ?? 1.0) * (getEquippedForRole('streets')?.growSpeedMultiplier ?? 1.0);
+  double get employeeSellMultiplier => (getEquippedForRole('lab')?.sellSpeedMultiplier ?? 1.0) * (getEquippedForRole('office')?.sellSpeedMultiplier ?? 1.0) * (getEquippedForRole('streets')?.sellSpeedMultiplier ?? 1.0);
+  double get employeeStashMultiplier => (getEquippedForRole('lab')?.maxStashMultiplier ?? 1.0) * (getEquippedForRole('office')?.maxStashMultiplier ?? 1.0) * (getEquippedForRole('streets')?.maxStashMultiplier ?? 1.0);
+  double get employeeCredMultiplier => (getEquippedForRole('lab')?.streetCredMultiplier ?? 1.0) * (getEquippedForRole('office')?.streetCredMultiplier ?? 1.0) * (getEquippedForRole('streets')?.streetCredMultiplier ?? 1.0);
+
   // Prestige / Meta variables
   int _streetCred = 0;
   int _totalBusts = 0;
@@ -201,15 +307,15 @@ class GameState extends ChangeNotifier {
   int get totalBusts => _totalBusts;
 
   double get maxStash {
-    return _baseMaxStash + currentLocation.stashBoost + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.maxStashBoost));
+    return (_baseMaxStash + currentLocation.stashBoost + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.maxStashBoost))) * employeeStashMultiplier;
   }
   
   double get autoGrowRate {
-    return activeStrain.baseGrowRate + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.autoGrowRateBoost));
+    return (activeStrain.baseGrowRate + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.autoGrowRateBoost))) * employeeGrowMultiplier;
   }
 
   double get autoSellRate {
-    return _baseAutoSellRate + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.autoSellRateBoost));
+    return (_baseAutoSellRate + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.autoSellRateBoost))) * employeeSellMultiplier;
   }
 
   // Save/Load System
@@ -267,6 +373,21 @@ class GameState extends ChangeNotifier {
       }
     }
 
+    final String? ownedEmployeesJson = prefs.getString('ownedEmployees');
+    if (ownedEmployeesJson != null) {
+      ownedEmployees = List<String>.from(jsonDecode(ownedEmployeesJson));
+    }
+
+    final String? equippedEmployeesJson = prefs.getString('equippedEmployees');
+    if (equippedEmployeesJson != null) {
+      final Map<String, dynamic> decoded = jsonDecode(equippedEmployeesJson);
+      equippedEmployees = {
+        'lab': decoded['lab'],
+        'streets': decoded['streets'],
+        'office': decoded['office'],
+      };
+    }
+
     final int? lastSavedEpoch = prefs.getInt('lastSaved');
     if (lastSavedEpoch != null) {
       _lastSaved = DateTime.fromMillisecondsSinceEpoch(lastSavedEpoch);
@@ -318,6 +439,9 @@ class GameState extends ChangeNotifier {
     
     final encodedUpgrades = jsonEncode(upgrades.map((u) => u.toJson()).toList());
     await prefs.setString('upgrades', encodedUpgrades);
+
+    await prefs.setString('ownedEmployees', jsonEncode(ownedEmployees));
+    await prefs.setString('equippedEmployees', jsonEncode(equippedEmployees));
     
     await prefs.setInt('lastSaved', DateTime.now().millisecondsSinceEpoch);
   }
@@ -453,7 +577,7 @@ class GameState extends ChangeNotifier {
   }
 
   void triggerBust() {
-    _streetCred += (_cash / 1000).floor() + 1; 
+    _streetCred += (((_cash / 1000).floor() + 1) * employeeCredMultiplier).floor();
     _totalBusts++;
 
     _cash = 0;

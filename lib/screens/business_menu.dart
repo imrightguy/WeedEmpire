@@ -304,6 +304,56 @@ class BusinessMenu extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text('ACTIVE STAFF', style: EmpireTheme.headerStyle),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildEmployeeSlot(context, gameState, 'lab', 'LAB'),
+              _buildEmployeeSlot(context, gameState, 'streets', 'STREETS'),
+              _buildEmployeeSlot(context, gameState, 'office', 'OFFICE'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (gameState.ownedEmployees.isNotEmpty) ...[
+            Text('AVAILABLE STAFF', style: EmpireTheme.headerStyle),
+            SizedBox(
+              height: 110,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: gameState.ownedEmployees.length,
+                itemBuilder: (context, index) {
+                  final empId = gameState.ownedEmployees[index];
+                  if (gameState.equippedEmployees.containsValue(empId)) return const SizedBox.shrink();
+                  final emp = gameState.availableEmployees.firstWhere((e) => e.id == empId);
+                  return GestureDetector(
+                     onTap: () => context.read<GameState>().equipEmployee(emp.id, emp.role),
+                     child: Container(
+                       width: 130,
+                       margin: const EdgeInsets.only(right: 8),
+                       padding: const EdgeInsets.all(6),
+                       decoration: BoxDecoration(
+                         color: EmpireTheme.lightMetal,
+                         border: Border.all(color: _getRarityColor(emp.rarity), width: 2),
+                         borderRadius: BorderRadius.circular(8)
+                       ),
+                       child: Column(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         children: [
+                           Text(emp.name, style: GoogleFonts.bangers(fontSize: 16, color: _getRarityColor(emp.rarity)), textAlign: TextAlign.center, maxLines: 1),
+                           Text(emp.role.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                           const SizedBox(height: 4),
+                           Text(emp.description, style: const TextStyle(fontSize: 10, color: Colors.white54), textAlign: TextAlign.center, maxLines: 2),
+                           const Spacer(),
+                           Text('EQUIP', style: GoogleFonts.oswald(fontSize: 14, color: EmpireTheme.neonGreen)),
+                         ]
+                       )
+                     )
+                  );
+                }
+              )
+            ),
+            const SizedBox(height: 16),
+          ],
           Text('REAL ESTATE MARKET', style: EmpireTheme.headerStyle),
           const Text('Buy new locations to massively increase your maximum stash limit.', style: TextStyle(color: Colors.white54, fontSize: 13)),
           const Divider(color: Colors.white24, thickness: 1),
@@ -346,9 +396,31 @@ class BusinessMenu extends StatelessWidget {
   Widget _buildSafeView(BuildContext context, GameState gameState) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: ListView(
         children: [
+          Text('THE GACHA SAFE', style: EmpireTheme.headerStyle),
+          const Text('Crack safes to hire new cartel employees!', style: TextStyle(color: Colors.white54, fontSize: 13)),
+          const Divider(color: Colors.white24, thickness: 1),
+          EmpireCard(
+             child: Padding(
+               padding: const EdgeInsets.all(16),
+               child: Column(
+                  children: [
+                     const Icon(Icons.lock, size: 64, color: EmpireTheme.neonGreen),
+                     const SizedBox(height: 16),
+                     EmpireButton(
+                        text: 'OPEN BASIC SAFE (\$1,000)',
+                        isPrimary: gameState.cash >= 1000,
+                        onPressed: gameState.cash >= 1000 ? () => context.read<GameState>().rollEmployee(1000) : null,
+                     ),
+                     const SizedBox(height: 8),
+                     Text('Find Thugs, Scientists, and Bosses!', style: EmpireTheme.bodyStyle),
+                  ]
+               )
+             )
+          ),
+          const SizedBox(height: 24),
+
           Text('SETTINGS & VISUALS', style: EmpireTheme.headerStyle),
           const Divider(color: Colors.white24, thickness: 1),
           EmpireCard(
@@ -432,5 +504,46 @@ class BusinessMenu extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildEmployeeSlot(BuildContext context, GameState state, String roleId, String roleName) {
+    final emp = state.getEquippedForRole(roleId);
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: EmpireTheme.darkMetal,
+          border: Border.all(color: emp != null ? _getRarityColor(emp.rarity) : Colors.white24),
+          borderRadius: BorderRadius.circular(8)
+        ),
+        child: Column(
+          children: [
+            Text(roleName, style: GoogleFonts.bangers(fontSize: 16, color: Colors.white70)),
+            const SizedBox(height: 8),
+            if (emp != null) ...[
+              Text(emp.name, style: GoogleFonts.oswald(fontSize: 14, color: _getRarityColor(emp.rarity)), textAlign: TextAlign.center),
+              Text(emp.description, style: const TextStyle(fontSize: 10, color: Colors.white54), textAlign: TextAlign.center),
+              TextButton(
+                onPressed: () => state.unequipEmployee(roleId), 
+                child: const Text('REMOVE', style: TextStyle(fontSize: 10, color: EmpireTheme.errorRed))
+              ),
+            ] else ...[
+              const Icon(Icons.person_outline, color: Colors.white24, size: 32),
+              const SizedBox(height: 24),
+            ]
+          ]
+        )
+      )
+    );
+  }
+  
+  Color _getRarityColor(EmployeeRarity r) {
+    switch (r) {
+      case EmployeeRarity.common: return Colors.white70;
+      case EmployeeRarity.rare: return Colors.lightBlueAccent;
+      case EmployeeRarity.epic: return Colors.purpleAccent;
+      case EmployeeRarity.legendary: return EmpireTheme.brightOrange;
+    }
   }
 }
