@@ -1,8 +1,8 @@
-# 🌿 Weed Empire 🌿
+# 🌿 WeedEmpire 🌿
 
 > **Start in a trailer park. End up running a global cartel. How big can you grow?**
 
-Welcome to **Weed Empire**, the ultimate idle growing and business simulation game! Featuring a gritty, satirical, cartoon-vector aesthetic inspired by your favorite trailer park hustlers, this game puts you in charge of building the most massive, lucrative empire the streets have ever seen.
+Welcome to **WeedEmpire**, the ultimate idle growing and business simulation game! Featuring a gritty, satirical, cartoon-vector aesthetic inspired by your favorite trailer park hustlers, this game puts you in charge of building the most massive, lucrative empire the streets have ever seen.
 
 ---
 
