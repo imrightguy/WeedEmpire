@@ -4,6 +4,8 @@
 
 Welcome to **WeedEmpire**, the ultimate idle growing and business simulation game! Featuring a gritty, satirical, cartoon-vector aesthetic inspired by your favorite trailer park hustlers, this game puts you in charge of building the most massive, lucrative empire the streets have ever seen.
 
+![WeedEmpire Concept Art](docs/assets/hero_concept.png)
+
 ---
 
 ## 🚀 The Hustle Starts Here

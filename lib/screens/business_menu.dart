@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../state/game_state.dart';
+import 'widgets/empire_widgets.dart';
 
 class BusinessMenu extends StatelessWidget {
   const BusinessMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Watch game state so the whole menu rebuilds when variables change
     final gameState = context.watch<GameState>();
     
     return Container(
-      color: Colors.black87,
+      color: EmpireTheme.darkMetal,
       child: DefaultTabController(
         length: 4,
         child: Column(
@@ -22,23 +22,31 @@ class BusinessMenu extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
               child: Text(
-                'Weed Empire',
-                style: GoogleFonts.bangers(fontSize: 42, color: Colors.greenAccent, letterSpacing: 2),
+                'WeedEmpire',
+                style: GoogleFonts.bangers(fontSize: 42, color: EmpireTheme.neonGreen, letterSpacing: 2),
                 textAlign: TextAlign.center,
               ),
             ),
             
             // Global HUD
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.grey[900],
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: EmpireTheme.lightMetal,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.black54, width: 2),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.5), offset: const Offset(0, 4), blurRadius: 4),
+                ],
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildHudItem('Cash', '\$${gameState.cash.toStringAsFixed(2)}', Colors.lightGreenAccent),
-                  _buildHudItem('Stash', '${gameState.weedStash.toStringAsFixed(1)}g', Colors.white),
+                  _buildHudItem('CASH', '\$${gameState.cash.toStringAsFixed(2)}', EmpireTheme.neonGreen),
+                  _buildHudItem('STASH', '${gameState.weedStash.toStringAsFixed(1)}g', Colors.white),
                   if (gameState.streetCred > 0)
-                    _buildHudItem('Cred', '${gameState.streetCred}', Colors.redAccent),
+                    _buildHudItem('CRED', '${gameState.streetCred}', EmpireTheme.brightOrange),
                 ],
               ),
             ),
@@ -49,27 +57,34 @@ class BusinessMenu extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.2),
-                  border: Border.all(color: Colors.redAccent, width: 2),
+                  color: EmpireTheme.errorRed.withValues(alpha: 0.2),
+                  border: Border.all(color: EmpireTheme.errorRed, width: 2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   children: [
-                    Text(
-                      gameState.activeEvent!.title,
-                      style: GoogleFonts.bangers(fontSize: 24, color: Colors.redAccent, letterSpacing: 1),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: EmpireTheme.errorRed, size: 28),
+                        const SizedBox(width: 8),
+                        Text(
+                          gameState.activeEvent!.title,
+                          style: GoogleFonts.bangers(fontSize: 24, color: EmpireTheme.errorRed, letterSpacing: 1),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       gameState.activeEvent!.description,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white),
+                      style: EmpireTheme.bodyStyle,
                     ),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                    const SizedBox(height: 12),
+                    EmpireButton(
+                      text: 'HIRE TRUTH TUBER (10 CRED)',
+                      isPrimary: false,
                       icon: const Icon(Icons.campaign, color: Colors.white),
-                      label: Text('HIRE TRUTH TUBER (10 Cred)', style: GoogleFonts.bangers(fontSize: 18, color: Colors.white)),
                       onPressed: gameState.streetCred >= 10 
                           ? () => context.read<GameState>().resolveEventWithCred()
                           : null,
@@ -81,9 +96,10 @@ class BusinessMenu extends StatelessWidget {
 
             // Tabs
             const TabBar(
-              indicatorColor: Colors.greenAccent,
-              labelColor: Colors.greenAccent,
+              indicatorColor: EmpireTheme.neonGreen,
+              labelColor: EmpireTheme.neonGreen,
               unselectedLabelColor: Colors.white54,
+              indicatorWeight: 4,
               tabs: [
                 Tab(icon: Icon(Icons.science), text: 'LAB'),
                 Tab(icon: Icon(Icons.storefront), text: 'STREETS'),
@@ -91,6 +107,7 @@ class BusinessMenu extends StatelessWidget {
                 Tab(icon: Icon(Icons.vpn_key), text: 'SAFE'),
               ],
             ),
+            const Divider(color: Colors.black, height: 1, thickness: 2),
 
             // Tab Views
             Expanded(
@@ -112,8 +129,8 @@ class BusinessMenu extends StatelessWidget {
   Widget _buildHudItem(String label, String value, Color valueColor) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.white54)),
-        Text(value, style: GoogleFonts.oswald(fontSize: 18, fontWeight: FontWeight.bold, color: valueColor)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.white54, fontWeight: FontWeight.bold)),
+        Text(value, style: GoogleFonts.oswald(fontSize: 20, fontWeight: FontWeight.bold, color: valueColor)),
       ],
     );
   }
@@ -128,37 +145,37 @@ class BusinessMenu extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Auto-Grow:', style: const TextStyle(fontSize: 18, color: Colors.white70)),
-              Text('${gameState.autoGrowRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 18, color: Colors.greenAccent)),
+              Text('AUTO-GROW RATE', style: EmpireTheme.bodyStyle),
+              Text('${gameState.autoGrowRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 20, color: EmpireTheme.neonGreen)),
             ],
           ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.all(16)),
+          const SizedBox(height: 16),
+          EmpireButton(
+            text: 'MANUAL GROW (+1g)',
             onPressed: () => context.read<GameState>().growWeed(1.0),
-            child: Text('MANUAL GROW (+1g)', style: GoogleFonts.bangers(fontSize: 24)),
           ),
-          const SizedBox(height: 20),
-          Text('Lab Upgrades', style: GoogleFonts.bangers(fontSize: 24, color: Colors.white)),
-          const Divider(color: Colors.white54),
+          const SizedBox(height: 24),
+          Text('LAB UPGRADES', style: EmpireTheme.headerStyle),
+          const Divider(color: Colors.white24, thickness: 1),
           Expanded(
             child: ListView.builder(
               itemCount: gameState.upgrades.length,
               itemBuilder: (context, index) {
                 final upgrade = gameState.upgrades[index];
-                // Only show grow/stash upgrades in the lab
                 if (upgrade.id != 'lamp' && upgrade.id != 'shed') return const SizedBox.shrink();
                 
                 final canAfford = gameState.cash >= upgrade.currentCost;
-                return Card(
-                  color: Colors.grey[850],
-                  child: ListTile(
-                    title: Text(upgrade.name, style: GoogleFonts.oswald(fontSize: 18, color: Colors.white)),
-                    subtitle: Text('${upgrade.description}\nLevel: ${upgrade.level}', style: const TextStyle(color: Colors.white70)),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: canAfford ? Colors.orange : Colors.grey),
-                      onPressed: canAfford ? () => context.read<GameState>().buyUpgrade(upgrade.id) : null,
-                      child: Text('\$${upgrade.currentCost.toStringAsFixed(2)}'),
+                return EmpireCard(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: ListTile(
+                      title: Text(upgrade.name, style: GoogleFonts.bangers(fontSize: 20, color: Colors.white, letterSpacing: 1)),
+                      subtitle: Text('${upgrade.description}\nLevel: ${upgrade.level}', style: EmpireTheme.bodyStyle.copyWith(color: Colors.white70)),
+                      trailing: EmpireButton(
+                        text: '\$${upgrade.currentCost.toStringAsFixed(2)}',
+                        isPrimary: canAfford,
+                        onPressed: canAfford ? () => context.read<GameState>().buyUpgrade(upgrade.id) : null,
+                      ),
                     ),
                   ),
                 );
@@ -180,37 +197,38 @@ class BusinessMenu extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Auto-Sell:', style: const TextStyle(fontSize: 18, color: Colors.white70)),
-              Text('${gameState.autoSellRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 18, color: Colors.greenAccent)),
+              Text('AUTO-SELL RATE', style: EmpireTheme.bodyStyle),
+              Text('${gameState.autoSellRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 20, color: EmpireTheme.neonGreen)),
             ],
           ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, padding: const EdgeInsets.all(16)),
+          const SizedBox(height: 16),
+          EmpireButton(
+            text: 'HUSTLE (+1g SOLD)',
+            isPrimary: false,
             onPressed: () => context.read<GameState>().sellWeed(1.0),
-            child: Text('HUSTLE (+1g Sold)', style: GoogleFonts.bangers(fontSize: 24, letterSpacing: 1)),
           ),
-          const SizedBox(height: 20),
-          Text('Street Upgrades', style: GoogleFonts.bangers(fontSize: 24, color: Colors.white)),
-          const Divider(color: Colors.white54),
+          const SizedBox(height: 24),
+          Text('STREET UPGRADES', style: EmpireTheme.headerStyle),
+          const Divider(color: Colors.white24, thickness: 1),
           Expanded(
             child: ListView.builder(
               itemCount: gameState.upgrades.length,
               itemBuilder: (context, index) {
                 final upgrade = gameState.upgrades[index];
-                // Only show selling upgrades here
                 if (upgrade.id != 'dealer') return const SizedBox.shrink();
                 
                 final canAfford = gameState.cash >= upgrade.currentCost;
-                return Card(
-                  color: Colors.grey[850],
-                  child: ListTile(
-                    title: Text(upgrade.name, style: GoogleFonts.oswald(fontSize: 18, color: Colors.white)),
-                    subtitle: Text('${upgrade.description}\nLevel: ${upgrade.level}', style: const TextStyle(color: Colors.white70)),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: canAfford ? Colors.orange : Colors.grey),
-                      onPressed: canAfford ? () => context.read<GameState>().buyUpgrade(upgrade.id) : null,
-                      child: Text('\$${upgrade.currentCost.toStringAsFixed(2)}'),
+                return EmpireCard(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: ListTile(
+                      title: Text(upgrade.name, style: GoogleFonts.bangers(fontSize: 20, color: Colors.white, letterSpacing: 1)),
+                      subtitle: Text('${upgrade.description}\nLevel: ${upgrade.level}', style: EmpireTheme.bodyStyle),
+                      trailing: EmpireButton(
+                        text: '\$${upgrade.currentCost.toStringAsFixed(2)}',
+                        isPrimary: canAfford,
+                        onPressed: canAfford ? () => context.read<GameState>().buyUpgrade(upgrade.id) : null,
+                      ),
                     ),
                   ),
                 );
@@ -222,15 +240,16 @@ class BusinessMenu extends StatelessWidget {
     );
   }
 
-  // --- TAB 3: THE OFFICE (Employees & Real Estate - Phase 4) ---
+  // --- TAB 3: THE OFFICE (Employees & Real Estate) ---
   Widget _buildOfficeView(BuildContext context, GameState gameState) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Real Estate Market', style: GoogleFonts.bangers(fontSize: 24, color: Colors.white)),
-          const Divider(color: Colors.white54),
+          Text('REAL ESTATE MARKET', style: EmpireTheme.headerStyle),
+          const Text('Buy new locations to massively increase your maximum stash limit.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+          const Divider(color: Colors.white24, thickness: 1),
           Expanded(
             child: ListView.builder(
               itemCount: gameState.locations.length,
@@ -241,18 +260,21 @@ class BusinessMenu extends StatelessWidget {
                 final isOwned = index <= gameState.currentLocationIndex;
                 final canAfford = gameState.cash >= loc.cost;
                 
-                return Card(
-                  color: isCurrent ? Colors.purple[900] : Colors.grey[850],
-                  child: ListTile(
-                    title: Text(loc.name, style: GoogleFonts.oswald(fontSize: 18, color: Colors.white)),
-                    subtitle: Text('${loc.description}\nMax Stash Boost: +${loc.stashBoost.toStringAsFixed(0)}g', style: const TextStyle(color: Colors.white70)),
-                    trailing: isOwned 
-                      ? Text(isCurrent ? 'ACTIVE' : 'OWNED', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))
-                      : ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: canAfford ? Colors.orange : Colors.grey),
-                          onPressed: canAfford ? () => context.read<GameState>().buyLocation(index) : null,
-                          child: Text('\$${loc.cost.toStringAsFixed(2)}'),
-                        ),
+                return EmpireCard(
+                  isHighlighted: isCurrent,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: ListTile(
+                      title: Text(loc.name, style: GoogleFonts.bangers(fontSize: 20, color: isCurrent ? EmpireTheme.brightOrange : Colors.white, letterSpacing: 1)),
+                      subtitle: Text('${loc.description}\nMax Stash Boost: +${loc.stashBoost.toStringAsFixed(0)}g', style: EmpireTheme.bodyStyle),
+                      trailing: isOwned 
+                        ? Text(isCurrent ? 'ACTIVE' : 'OWNED', style: GoogleFonts.oswald(color: EmpireTheme.neonGreen, fontSize: 18, fontWeight: FontWeight.bold))
+                        : EmpireButton(
+                            text: '\$${loc.cost.toStringAsFixed(0)}',
+                            isPrimary: canAfford,
+                            onPressed: canAfford ? () => context.read<GameState>().buyLocation(index) : null,
+                          ),
+                    ),
                   ),
                 );
               },
@@ -270,49 +292,53 @@ class BusinessMenu extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Settings & Visuals', style: GoogleFonts.bangers(fontSize: 24, color: Colors.white)),
-          const Divider(color: Colors.white54),
-          SwitchListTile(
-            title: const Text('Enable Modern Graphics', style: TextStyle(color: Colors.white70)),
-            value: gameState.enableVisualUpgrades,
-            activeThumbColor: Colors.greenAccent,
-            onChanged: (val) => context.read<GameState>().toggleVisualUpgrades(val),
+          Text('SETTINGS & VISUALS', style: EmpireTheme.headerStyle),
+          const Divider(color: Colors.white24, thickness: 1),
+          EmpireCard(
+            child: SwitchListTile(
+              title: Text('Enable Modern Graphics', style: EmpireTheme.bodyStyle.copyWith(color: Colors.white)),
+              value: gameState.enableVisualUpgrades,
+              activeThumbColor: EmpireTheme.neonGreen,
+              onChanged: (val) => context.read<GameState>().toggleVisualUpgrades(val),
+            ),
           ),
           
           const SizedBox(height: 30),
           
-          Text('Heat Level', style: GoogleFonts.bangers(fontSize: 24, color: Colors.redAccent)),
-          const Divider(color: Colors.white54),
+          Text('HEAT LEVEL', style: EmpireTheme.headerStyle.copyWith(color: EmpireTheme.errorRed)),
+          const Divider(color: Colors.white24, thickness: 1),
           if (gameState.cash < 500 && gameState.streetCred == 0)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Text(
                 'You are too small time for the cops to care. Earn at least \$500 to trigger a bust.',
-                style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic),
+                style: EmpireTheme.bodyStyle.copyWith(fontStyle: FontStyle.italic),
+                textAlign: TextAlign.center,
               ),
             ),
           if (gameState.cash >= 500 || gameState.streetCred > 0) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.redAccent)
+                color: EmpireTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: EmpireTheme.errorRed, width: 2)
               ),
               child: Column(
                 children: [
                    Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       Text('Total Busts:', style: const TextStyle(fontSize: 16, color: Colors.white70)),
-                       Text('${gameState.totalBusts}', style: GoogleFonts.oswald(fontSize: 18, color: Colors.white)),
+                       Text('TOTAL BUSTS:', style: GoogleFonts.bangers(fontSize: 20, color: Colors.white, letterSpacing: 1)),
+                       Text('${gameState.totalBusts}', style: GoogleFonts.oswald(fontSize: 22, color: EmpireTheme.errorRed, fontWeight: FontWeight.bold)),
                    ]),
                    const SizedBox(height: 15),
                    ElevatedButton.icon(
                      style: ElevatedButton.styleFrom(
-                       backgroundColor: Colors.redAccent, 
+                       backgroundColor: EmpireTheme.errorRed, 
                        padding: const EdgeInsets.all(16),
                        minimumSize: const Size(double.infinity, 50),
+                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                      ),
                      icon: const Icon(Icons.local_police, color: Colors.white),
                      label: Text('TAKE THE FALL (PRESTIGE)', style: GoogleFonts.bangers(fontSize: 22, letterSpacing: 1, color: Colors.white)),
@@ -320,17 +346,22 @@ class BusinessMenu extends StatelessWidget {
                          showDialog(
                            context: context, 
                            builder: (ctx) => AlertDialog(
-                             backgroundColor: Colors.grey[900],
-                             title: Text('The Cops are here!', style: GoogleFonts.bangers(color: Colors.redAccent, fontSize: 32)),
-                             content: Text('They will seize all your cash, stash, and upgrades. But you will earn Street Cred based on your net worth (${(gameState.cash / 500).floor()} Cred). Start over?', style: const TextStyle(color: Colors.white)),
+                             backgroundColor: EmpireTheme.lightMetal,
+                             shape: RoundedRectangleBorder(
+                               borderRadius: BorderRadius.circular(12),
+                               side: const BorderSide(color: EmpireTheme.errorRed, width: 2),
+                             ),
+                             title: Text('THE COPS ARE HERE!', style: GoogleFonts.bangers(color: EmpireTheme.errorRed, fontSize: 32, letterSpacing: 1)),
+                             content: Text('They will seize all your cash, stash, and upgrades. But you will earn Street Cred based on your net worth (${(gameState.cash / 500).floor()} Cred). Start over?', style: EmpireTheme.bodyStyle),
                              actions: [
-                               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Nevermind', style: TextStyle(color: Colors.white54))),
-                               TextButton(
+                               TextButton(onPressed: () => Navigator.pop(ctx), child: Text('NEVERMIND', style: GoogleFonts.bangers(color: Colors.white54, fontSize: 18))),
+                               EmpireButton(
+                                 text: 'DO IT',
+                                 isPrimary: false,
                                  onPressed: () {
                                     context.read<GameState>().triggerBust();
                                     Navigator.pop(ctx);
                                  }, 
-                                 child: const Text('Do it.', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))
                                )
                              ]
                            )
