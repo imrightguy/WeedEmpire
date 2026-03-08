@@ -1,17 +1,23 @@
-# weed_empire
+# Weed Empire
 
-A new Flutter project.
+A multiplatform (Mobile & Desktop) idle growing and business simulation game built with Flutter and the Flame Engine.
+Inspired by the gritty, cartoon-vector aesthetic of Trailer Park Boys.
 
-## Getting Started
+## Features Currently Implemented
+*   **Flame Engine Integration**: A seamless 2D game canvas rendering AI-generated vector environments and sprites alongside standard Flutter UI (`ChangeNotifier` powered).
+*   **Responsive Layouts**: The UI dynamically adapts its layout depending on whether you are running a portrait (mobile) or landscape (desktop/web) window.
+*   **Idle Resource Generation**: Watch your stash grow over time with background logic mapped natively to the `update(dt)` loop.
+*   **Offline Progression**: Fully serialized `shared_preferences` State allows players to close the app and return to calculated idle profits later.
+*   **Active Selling**: Tap procedurally spawned customers (`CustomerComponent`) walking across the Flame canvas to sell your stash for cash.
+*   **Passive Selling Upgrades**: Hire 'The Corner Dealer' to automatically automate sales.
+*   **"Get Busted" Prestige System**: The police will seize your cash and stash, but reward your net worth with permanent meta-currency ("Street Cred").
 
-This project is a starting point for a Flutter application.
+## Running the Game
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+# Run on Linux/macOS/Windows desktops
+flutter run -d linux
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Run on a connected mobile device or emulator
+flutter run -d <device_id>
+```
