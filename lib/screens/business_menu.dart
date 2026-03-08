@@ -49,6 +49,8 @@ class BusinessMenu extends StatelessWidget {
                   _buildHudItem('STASH', '${gameState.weedStash.toStringAsFixed(1)}g', Colors.white),
                   if (gameState.streetCred > 0)
                     _buildHudItem('CRED', '${gameState.streetCred}', EmpireTheme.brightOrange),
+                  if (gameState.goldBars > 0)
+                    _buildHudItem('BARS', '${gameState.goldBars}', const Color(0xFFFFD700)),
                 ],
               ),
             ),
@@ -163,8 +165,10 @@ class BusinessMenu extends StatelessWidget {
                   onTap: () {
                     if (isUnlocked && !isActive) {
                       context.read<GameState>().setActiveStrain(strain.id);
+                      showEmpireSnackbar(context, 'NOW GROWING: ${strain.name.toUpperCase()}');
                     } else if (!isUnlocked && canAfford) {
                       context.read<GameState>().unlockStrain(strain.id);
+                      showEmpireSnackbar(context, '🌿 UNLOCKED: ${strain.name.toUpperCase()}!', color: EmpireTheme.brightOrange);
                     }
                   },
                   child: Container(

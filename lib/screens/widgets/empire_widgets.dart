@@ -50,7 +50,7 @@ class EmpireCard extends StatelessWidget {
   }
 }
 
-class EmpireButton extends StatelessWidget {
+class EmpireButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isPrimary;
@@ -65,59 +65,112 @@ class EmpireButton extends StatelessWidget {
   });
 
   @override
+  State<EmpireButton> createState() => _EmpireButtonState();
+}
+
+class _EmpireButtonState extends State<EmpireButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.93).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (widget.onPressed == null) return;
+    _controller.forward().then((_) {
+      _controller.reverse();
+      widget.onPressed!();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bool isDisabled = onPressed == null;
+    final bool isDisabled = widget.onPressed == null;
     final Color bgColor = isDisabled
         ? Colors.grey[800]!
-        : (isPrimary ? EmpireTheme.neonGreen : EmpireTheme.brightOrange);
+        : (widget.isPrimary ? EmpireTheme.neonGreen : EmpireTheme.brightOrange);
     final Color textColor = isDisabled
         ? Colors.white30
-        : (isPrimary ? Colors.black : Colors.white);
+        : (widget.isPrimary ? Colors.black : Colors.white);
 
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDisabled ? Colors.transparent : Colors.black87,
-            width: 2,
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: GestureDetector(
+        onTap: _handleTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDisabled ? Colors.transparent : Colors.black87,
+              width: 2,
+            ),
+            boxShadow: isDisabled
+                ? []
+                : [
+                    BoxShadow(
+                      color: bgColor.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
           ),
-          boxShadow: isDisabled
-              ? []
-              : [
-                  BoxShadow(
-                    color: bgColor.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              icon!,
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.bangers(
-                  fontSize: 20,
-                  color: textColor,
-                  letterSpacing: 1.2,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (widget.icon != null) ...[
+                widget.icon!,
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.bangers(
+                    fontSize: 20,
+                    color: textColor,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+/// Show a styled snackbar notification
+void showEmpireSnackbar(BuildContext context, String message, {Color color = EmpireTheme.neonGreen}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message, style: GoogleFonts.bangers(fontSize: 18, color: Colors.white, letterSpacing: 1)),
+      backgroundColor: EmpireTheme.lightMetal,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: color, width: 2),
+      ),
+      duration: const Duration(seconds: 2),
+    ),
+  );
+}
+
