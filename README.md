@@ -18,6 +18,9 @@ The game is designed with a long-term progression loop in mind, focusing on play
     *   Hire 'The Corner Dealer' to automate sales for passive income.
 *   **"Get Busted" Prestige System**: The police will seize your cash and stash, but reward your net worth with permanent meta-currency ("Street Cred") used to unlock powerful permanent boosts.
 *   **Aesthetics Toggle**: Players can toggle "Modern Graphics" on/off, providing flexibility for future art direction changes without alienating fans of the original gritty look.
+*   **UI Grid/Tab Overhaul**: Redesigned the main interface into 4 distinct tabs (`Lab`, `Streets`, `Office`, `Safe`) using `DefaultTabController` to organize the scaling feature set.
+*   **Custom Fonts**: Integrated premium `GoogleFonts` (`Bangers`, `Oswald`) to match a bold, cartoonish art direction.
+*   **"Elite Cabal" Event Engine**: Added a randomized antagonist event system to the game loop. The Elite Cabal periodically launches "Fake News" smear campaigns severely crippling customer spawn rates until the player spends "Street Cred" to clear their name.
 
 ## The Bigger Plan (Upcoming Features)
 
