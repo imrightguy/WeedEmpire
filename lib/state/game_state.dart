@@ -127,6 +127,14 @@ class GameLocation {
 
 class GameState extends ChangeNotifier {
   double _cash = 0.0;
+  int _goldBars = 0;
+  int get goldBars => _goldBars;
+
+  // Ad boost state
+  bool _miracleGrowActive = false;
+  double _miracleGrowTimeRemaining = 0;
+  bool get miracleGrowActive => _miracleGrowActive;
+  double get miracleGrowTimeRemaining => _miracleGrowTimeRemaining;
 
   // Strains definition
   final List<Strain> strains = [
@@ -336,6 +344,7 @@ class GameState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     
     _cash = prefs.getDouble('cash') ?? 0.0;
+    _goldBars = prefs.getInt('goldBars') ?? 0;
     _streetCred = prefs.getInt('streetCred') ?? 0;
     _totalBusts = prefs.getInt('totalBusts') ?? 0;
     _enableVisualUpgrades = prefs.getBool('visuals') ?? true;
@@ -428,6 +437,7 @@ class GameState extends ChangeNotifier {
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('cash', _cash);
+    await prefs.setInt('goldBars', _goldBars);
     await prefs.setInt('streetCred', _streetCred);
     await prefs.setInt('totalBusts', _totalBusts);
     await prefs.setBool('visuals', _enableVisualUpgrades);
@@ -454,6 +464,16 @@ class GameState extends ChangeNotifier {
     
     bool changed = false;
 
+    // Miracle Grow boost timer
+    if (_miracleGrowActive) {
+      _miracleGrowTimeRemaining -= dt;
+      if (_miracleGrowTimeRemaining <= 0) {
+        _miracleGrowActive = false;
+        _miracleGrowTimeRemaining = 0;
+      }
+      changed = true;
+    }
+
     // Event Loop
     if (activeEvent != null) {
        _eventTimeRemaining -= dt;
@@ -474,7 +494,8 @@ class GameState extends ChangeNotifier {
     }
 
     if (autoGrowRate > 0) {
-      double generated = (autoGrowRate * (activeEvent?.autoGrowModifier ?? 1.0)) * dt;
+      double growMultiplier = _miracleGrowActive ? 5.0 : 1.0;
+      double generated = (autoGrowRate * growMultiplier * (activeEvent?.autoGrowModifier ?? 1.0)) * dt;
       if (weedStash < maxStash) {
         if (weedStash + generated > maxStash) {
            generated = maxStash - weedStash;
@@ -586,6 +607,74 @@ class GameState extends ChangeNotifier {
       u.level = 0;
     }
 
+    notifyListeners();
+    _saveData();
+  }
+
+  // --- MONETIZATION ---
+
+  /// "Morning Rush" reward: doubles offline earnings
+  void claimMorningRush(double offlineEarnings) {
+    _cash += offlineEarnings; // doubles what was already added
+    notifyListeners();
+    _saveData();
+  }
+
+  /// "Miracle Grow" reward: 5x grow speed for 15 minutes
+  void activateMiracleGrow() {
+    _miracleGrowActive = true;
+    _miracleGrowTimeRemaining = 900.0; // 15 min
+    notifyListeners();
+  }
+
+  /// "Get Out of Jail Free" — nullify a bust
+  void nullifyBust() {
+    // Called instead of triggerBust when user watches the ad
+    notifyListeners();
+  }
+
+  /// Time Warp — skip forward N hours of production
+  void timeWarp(int hours, int goldBarCost) {
+    if (_goldBars >= goldBarCost) {
+      _goldBars -= goldBarCost;
+      final seconds = hours * 3600;
+      if (autoGrowRate > 0) {
+        final generated = (seconds * autoGrowRate).clamp(0.0, maxStash - weedStash);
+        stash[activeStrain.id] = (stash[activeStrain.id] ?? 0) + generated;
+      }
+      if (autoSellRate > 0) {
+        final toSell = (seconds * autoSellRate).clamp(0.0, activeStrainStash);
+        stash[activeStrain.id] = stash[activeStrain.id]! - toSell;
+        _cash += toSell * activeStrain.sellPrice;
+      }
+      notifyListeners();
+      _saveData();
+    }
+  }
+
+  /// Golden Safe — guaranteed Epic or Legendary for Gold Bars
+  void rollGoldenSafe(int goldBarCost) {
+    if (_goldBars >= goldBarCost) {
+      _goldBars -= goldBarCost;
+      double roll = Random().nextDouble();
+      EmployeeRarity hitRarity = roll < 0.15 ? EmployeeRarity.legendary : EmployeeRarity.epic;
+      
+      final possible = availableEmployees.where((e) => e.rarity == hitRarity).toList();
+      final hit = possible[Random().nextInt(possible.length)];
+      
+      if (!ownedEmployees.contains(hit.id)) {
+        ownedEmployees.add(hit.id);
+      } else {
+        _streetCred += 5; // better dupe compensation
+      }
+      notifyListeners();
+      _saveData();
+    }
+  }
+
+  /// Add Gold Bars (from IAP or milestone rewards)
+  void addGoldBars(int amount) {
+    _goldBars += amount;
     notifyListeners();
     _saveData();
   }

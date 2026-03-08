@@ -6,10 +6,16 @@ import 'state/game_state.dart';
 import 'screens/responsive_layout.dart';
 import 'screens/business_menu.dart';
 import 'game/weed_empire_game.dart';
+import 'services/ad_service.dart';
+import 'services/play_games_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize monetization & platform services
+  AdService().initialize();
+  PlayGamesService().signIn();
+
   final gameState = GameState();
   // Fire and forget initialization. The UI will show defaults and update once loaded.
   gameState.initSaveData(); 
