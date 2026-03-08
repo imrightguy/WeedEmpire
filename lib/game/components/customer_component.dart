@@ -68,7 +68,7 @@ class CustomerComponent extends PositionComponent with TapCallbacks, HasGameRefe
   void onTapDown(TapDownEvent event) {
     if (_isSatisfied) return;
 
-    if (gameState.weedStash >= amountWanted) {
+    if (gameState.activeStrainStash >= amountWanted) {
       gameState.sellWeed(amountWanted);
       _isSatisfied = true;
       _textBadge.text = 'Thanks!';

@@ -104,12 +104,15 @@ class EmpireButton extends StatelessWidget {
               icon!,
               const SizedBox(width: 8),
             ],
-            Text(
-              text,
-              style: GoogleFonts.bangers(
-                fontSize: 20,
-                color: textColor,
-                letterSpacing: 1.2,
+            Flexible(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.bangers(
+                  fontSize: 20,
+                  color: textColor,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
           ],

@@ -142,11 +142,68 @@ class BusinessMenu extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Strain Selection Header
+          Text('PLANT STRAIN', style: EmpireTheme.headerStyle),
+          const Divider(color: Colors.white24, thickness: 1),
+          // Horizontal list of Strains
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: gameState.strains.length,
+              itemBuilder: (context, index) {
+                final strain = gameState.strains[index];
+                final isUnlocked = gameState.unlockedStrains.contains(strain.id);
+                final isActive = gameState.activeStrainIndex == index;
+                final canAfford = gameState.cash >= strain.unlockCost;
+                
+                return GestureDetector(
+                  onTap: () {
+                    if (isUnlocked && !isActive) {
+                      context.read<GameState>().setActiveStrain(strain.id);
+                    } else if (!isUnlocked && canAfford) {
+                      context.read<GameState>().unlockStrain(strain.id);
+                    }
+                  },
+                  child: Container(
+                    width: 140,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: isActive ? EmpireTheme.darkMetal : EmpireTheme.lightMetal,
+                      border: Border.all(
+                        color: isActive ? EmpireTheme.neonGreen : (isUnlocked ? Colors.white54 : EmpireTheme.errorRed),
+                        width: isActive ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(strain.name, style: GoogleFonts.bangers(fontSize: 16, color: isActive ? EmpireTheme.neonGreen : Colors.white), textAlign: TextAlign.center, maxLines: 1),
+                        const SizedBox(height: 4),
+                        if (isActive)
+                           Text('GROWING', style: GoogleFonts.oswald(fontSize: 14, color: EmpireTheme.neonGreen, fontWeight: FontWeight.bold))
+                        else if (isUnlocked)
+                           Text('SWITCH', style: GoogleFonts.oswald(fontSize: 14, color: Colors.white70))
+                        else
+                           Text('UNLOCK: \$${strain.unlockCost.toStringAsFixed(0)}', style: GoogleFonts.oswald(fontSize: 14, color: canAfford ? EmpireTheme.brightOrange : EmpireTheme.errorRed)),
+                        const SizedBox(height: 2),
+                        Text('\$${strain.sellPrice.toStringAsFixed(0)}/g', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('AUTO-GROW RATE', style: EmpireTheme.bodyStyle),
-              Text('${gameState.autoGrowRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 20, color: EmpireTheme.neonGreen)),
+              Flexible(child: Text('AUTO-GROW RATE', style: EmpireTheme.bodyStyle)),
+              Flexible(child: Text('${gameState.autoGrowRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 20, color: EmpireTheme.neonGreen))),
             ],
           ),
           const SizedBox(height: 16),
@@ -197,8 +254,8 @@ class BusinessMenu extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('AUTO-SELL RATE', style: EmpireTheme.bodyStyle),
-              Text('${gameState.autoSellRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 20, color: EmpireTheme.neonGreen)),
+              Flexible(child: Text('AUTO-SELL RATE', style: EmpireTheme.bodyStyle)),
+              Flexible(child: Text('${gameState.autoSellRate.toStringAsFixed(1)} g/s', style: GoogleFonts.oswald(fontSize: 20, color: EmpireTheme.neonGreen))),
             ],
           ),
           const SizedBox(height: 16),
@@ -329,8 +386,8 @@ class BusinessMenu extends StatelessWidget {
                    Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       Text('TOTAL BUSTS:', style: GoogleFonts.bangers(fontSize: 20, color: Colors.white, letterSpacing: 1)),
-                       Text('${gameState.totalBusts}', style: GoogleFonts.oswald(fontSize: 22, color: EmpireTheme.errorRed, fontWeight: FontWeight.bold)),
+                       Flexible(child: Text('TOTAL BUSTS:', style: GoogleFonts.bangers(fontSize: 20, color: Colors.white, letterSpacing: 1))),
+                       Flexible(child: Text('${gameState.totalBusts}', style: GoogleFonts.oswald(fontSize: 22, color: EmpireTheme.errorRed, fontWeight: FontWeight.bold))),
                    ]),
                    const SizedBox(height: 15),
                    ElevatedButton.icon(

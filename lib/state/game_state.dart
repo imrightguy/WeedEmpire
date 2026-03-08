@@ -2,6 +2,24 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class Strain {
+  final String id;
+  final String name;
+  final int tier;
+  final double baseGrowRate;
+  final double sellPrice;
+  final double unlockCost;
+
+  Strain({
+    required this.id,
+    required this.name,
+    required this.tier,
+    required this.baseGrowRate,
+    required this.sellPrice,
+    required this.unlockCost,
+  });
+}
+
 class Upgrade {
   final String id;
   final String name;
@@ -81,8 +99,50 @@ class GameLocation {
 
 class GameState extends ChangeNotifier {
   double _cash = 0.0;
-  double _weedStash = 0.0;
-  final double _weedPrice = 10.0; // $10 per gram
+
+  // Strains definition
+  final List<Strain> strains = [
+    Strain(id: 'trailer_trash', name: 'Trailer Trash', tier: 1, baseGrowRate: 1.0, sellPrice: 10.0, unlockCost: 0),
+    Strain(id: 'northern_lights', name: 'Northern Lights', tier: 2, baseGrowRate: 0.5, sellPrice: 30.0, unlockCost: 10000.0),
+    Strain(id: 'purple_haze', name: 'Purple Haze', tier: 3, baseGrowRate: 0.2, sellPrice: 100.0, unlockCost: 50000.0),
+    Strain(id: 'diamond_kush', name: 'Diamond Kush', tier: 4, baseGrowRate: 0.05, sellPrice: 5000.0, unlockCost: 500000.0),
+  ];
+
+  int _activeStrainIndex = 0;
+  int get activeStrainIndex => _activeStrainIndex;
+  Strain get activeStrain => strains[_activeStrainIndex];
+  
+  List<String> unlockedStrains = ['trailer_trash'];
+
+  Map<String, double> stash = {
+    'trailer_trash': 0.0,
+    'northern_lights': 0.0,
+    'purple_haze': 0.0,
+    'diamond_kush': 0.0,
+  };
+
+  double get weedStash => stash.values.fold(0.0, (sum, val) => sum + val);
+  double get activeStrainStash => stash[activeStrain.id] ?? 0.0;
+
+  void setActiveStrain(String id) {
+    if (unlockedStrains.contains(id)) {
+      _activeStrainIndex = strains.indexWhere((s) => s.id == id);
+      notifyListeners();
+      _saveData();
+    }
+  }
+
+  void unlockStrain(String id) {
+    if (!unlockedStrains.contains(id)) {
+      final s = strains.firstWhere((s) => s.id == id);
+      if (_cash >= s.unlockCost) {
+        _cash -= s.unlockCost;
+        unlockedStrains.add(id);
+        notifyListeners();
+        _saveData();
+      }
+    }
+  }
 
   // Locations
   int _currentLocationIndex = 0;
@@ -90,7 +150,7 @@ class GameState extends ChangeNotifier {
 
   final List<GameLocation> locations = [
     GameLocation(id: 'rv_park', name: 'Shady RV Park', description: 'Where it all began.', cost: 0, stashBoost: 0, assetPath: 'trailer_park_bg.png'),
-    GameLocation(id: 'garage', name: 'Suburban Garage', description: 'A quiet place in the burbs.', cost: 5000, stashBoost: 500, assetPath: 'garage_bg.png'), // Will add asset later, or fallback
+    GameLocation(id: 'garage', name: 'Suburban Garage', description: 'A quiet place in the burbs.', cost: 5000, stashBoost: 500, assetPath: 'garage_bg.png'),
     GameLocation(id: 'bunker', name: 'Underground Bunker', description: 'High tech, high capacity.', cost: 50000, stashBoost: 5000, assetPath: 'bunker_bg.png'),
     GameLocation(id: 'mansion', name: 'Cartel Mansion', description: 'You made it.', cost: 500000, stashBoost: 50000, assetPath: 'mansion_bg.png'),
   ];
@@ -109,8 +169,7 @@ class GameState extends ChangeNotifier {
 
   // Core Stats
   final double _baseMaxStash = 10.0;
-  final double _baseAutoGrowRate = 0.0; // grams per second
-  final double _baseAutoSellRate = 0.0; // grams per second
+  final double _baseAutoSellRate = 0.0; 
 
   // Upgrades
   final List<Upgrade> upgrades = [
@@ -138,7 +197,6 @@ class GameState extends ChangeNotifier {
   ];
 
   double get cash => _cash;
-  double get weedStash => _weedStash;
   int get streetCred => _streetCred;
   int get totalBusts => _totalBusts;
 
@@ -147,7 +205,7 @@ class GameState extends ChangeNotifier {
   }
   
   double get autoGrowRate {
-    return _baseAutoGrowRate + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.autoGrowRateBoost));
+    return activeStrain.baseGrowRate + upgrades.fold(0.0, (sum, u) => sum + (u.level * u.autoGrowRateBoost));
   }
 
   double get autoSellRate {
@@ -172,11 +230,31 @@ class GameState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     
     _cash = prefs.getDouble('cash') ?? 0.0;
-    _weedStash = prefs.getDouble('weedStash') ?? 0.0;
     _streetCred = prefs.getInt('streetCred') ?? 0;
     _totalBusts = prefs.getInt('totalBusts') ?? 0;
     _enableVisualUpgrades = prefs.getBool('visuals') ?? true;
     _currentLocationIndex = prefs.getInt('locationIndex') ?? 0;
+
+    // Load new stash format or migrate old
+    final oldStash = prefs.getDouble('weedStash');
+    if (oldStash != null) {
+      stash['trailer_trash'] = oldStash;
+      prefs.remove('weedStash'); // Clean up old
+    } else {
+      final String? stashJson = prefs.getString('stashData');
+      if (stashJson != null) {
+        final Map<String, dynamic> decoded = jsonDecode(stashJson);
+        for (var key in decoded.keys) {
+          stash[key] = (decoded[key] as num).toDouble();
+        }
+      }
+    }
+
+    final String? unlockedJson = prefs.getString('unlockedStrains');
+    if (unlockedJson != null) {
+      unlockedStrains = List<String>.from(jsonDecode(unlockedJson));
+    }
+    _activeStrainIndex = prefs.getInt('activeStrainIndex') ?? 0;
 
     final String? upgradesJson = prefs.getString('upgrades');
     if (upgradesJson != null) {
@@ -209,19 +287,18 @@ class GameState extends ChangeNotifier {
     if (secondsPassed > 0) {
       if (autoGrowRate > 0) {
         final generated = secondsPassed * autoGrowRate;
-        _weedStash += generated;
-        if (_weedStash > maxStash) {
-          _weedStash = maxStash;
+        if (weedStash + generated > maxStash) {
+           stash[activeStrain.id] = (stash[activeStrain.id] ?? 0) + (maxStash - weedStash);
+        } else {
+           stash[activeStrain.id] = (stash[activeStrain.id] ?? 0) + generated;
         }
-        debugPrint("Offline Progress: Generated ${generated.toStringAsFixed(2)}g over $secondsPassed seconds.");
+        debugPrint("Offline Progress: Generated ${generated.toStringAsFixed(2)}g of ${activeStrain.name} over $secondsPassed seconds.");
       }
 
       if (autoSellRate > 0) {
-        // Technically this should be a complex simulation (grow, then sell, then cap), 
-        // but for a simple idle game we just estimate:
-        final toSell = (secondsPassed * autoSellRate).clamp(0.0, _weedStash);
-        _weedStash -= toSell;
-        _cash += toSell * _weedPrice;
+        final toSell = (secondsPassed * autoSellRate).clamp(0.0, activeStrainStash);
+        stash[activeStrain.id] = stash[activeStrain.id]! - toSell;
+        _cash += toSell * activeStrain.sellPrice;
         debugPrint("Offline Progress: Sold ${toSell.toStringAsFixed(2)}g over $secondsPassed seconds.");
       }
     }
@@ -230,11 +307,14 @@ class GameState extends ChangeNotifier {
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('cash', _cash);
-    await prefs.setDouble('weedStash', _weedStash);
     await prefs.setInt('streetCred', _streetCred);
     await prefs.setInt('totalBusts', _totalBusts);
     await prefs.setBool('visuals', _enableVisualUpgrades);
     await prefs.setInt('locationIndex', _currentLocationIndex);
+    
+    await prefs.setString('stashData', jsonEncode(stash));
+    await prefs.setString('unlockedStrains', jsonEncode(unlockedStrains));
+    await prefs.setInt('activeStrainIndex', _activeStrainIndex);
     
     final encodedUpgrades = jsonEncode(upgrades.map((u) => u.toJson()).toList());
     await prefs.setString('upgrades', encodedUpgrades);
@@ -244,8 +324,6 @@ class GameState extends ChangeNotifier {
 
   double _timeSinceLastEvent = 0;
   final double _eventCooldown = 60.0; // 60s cooldown
-
-  // --- Game Mechanics ---
 
   void tick(double dt) {
     if (!_isLoaded) return;
@@ -264,7 +342,6 @@ class GameState extends ChangeNotifier {
     } else {
        _timeSinceLastEvent += dt;
        if (_timeSinceLastEvent > _eventCooldown) {
-          // Check roughly once per second using a simple probability
           if (DateTime.now().millisecond % 1000 < 10) { 
              _triggerRandomEvent();
              changed = true;
@@ -274,31 +351,29 @@ class GameState extends ChangeNotifier {
 
     if (autoGrowRate > 0) {
       double generated = (autoGrowRate * (activeEvent?.autoGrowModifier ?? 1.0)) * dt;
-      if (_weedStash < maxStash) {
-        _weedStash += generated;
-        if (_weedStash > maxStash) {
-          _weedStash = maxStash;
+      if (weedStash < maxStash) {
+        if (weedStash + generated > maxStash) {
+           generated = maxStash - weedStash;
         }
+        stash[activeStrain.id] = (stash[activeStrain.id] ?? 0) + generated;
         changed = true;
       }
     }
 
     if (autoSellRate > 0) {
-      // Auto-sell is affected by customer spawn modifier conceptually
       double sold = (autoSellRate * (activeEvent?.customerSpawnModifier ?? 1.0)) * dt;
-      if (sold > _weedStash) {
-        sold = _weedStash; // Don't sell more than we have
+      if (sold > activeStrainStash) {
+        sold = activeStrainStash; 
       }
       if (sold > 0) {
-        _weedStash -= sold;
-        _cash += sold * _weedPrice;
+        stash[activeStrain.id] = stash[activeStrain.id]! - sold;
+        _cash += sold * activeStrain.sellPrice;
         changed = true;
       }
     }
 
     if (changed) {
       notifyListeners();
-      // Throttling save to avoid writing thousands of times per second
       _throttleSave(); 
     }
   }
@@ -309,7 +384,7 @@ class GameState extends ChangeNotifier {
        title: 'FAKE NEWS SMEAR',
        description: 'The Elite Cabal claims your weed causes dancing!\nCustomers are staying away.',
        durationSeconds: 30,
-       customerSpawnModifier: 0.2, // 80% drop in speed/spawning
+       customerSpawnModifier: 0.2, 
     );
     _eventTimeRemaining = activeEvent!.durationSeconds.toDouble();
     _customerSpawnModifier = activeEvent!.customerSpawnModifier;
@@ -326,7 +401,6 @@ class GameState extends ChangeNotifier {
     }
   }
 
-  // Simple throttler for manual interactions to avoid save spam loop
   DateTime _lastSaveCall = DateTime.now();
   void _throttleSave() {
      if (DateTime.now().difference(_lastSaveCall).inSeconds > 2) {
@@ -336,20 +410,21 @@ class GameState extends ChangeNotifier {
   }
 
   void growWeed(double amount) {
-    if (_weedStash < maxStash) {
-      _weedStash += amount;
-      if (_weedStash > maxStash) {
-        _weedStash = maxStash;
+    if (weedStash < maxStash) {
+      double added = amount;
+      if (weedStash + amount > maxStash) {
+         added = maxStash - weedStash;
       }
+      stash[activeStrain.id] = (stash[activeStrain.id] ?? 0) + added;
       notifyListeners();
       _throttleSave();
     }
   }
 
   void sellWeed(double amount) {
-    if (_weedStash >= amount) {
-      _weedStash -= amount;
-      _cash += amount * _weedPrice;
+    if (activeStrainStash >= amount) {
+      stash[activeStrain.id] = stash[activeStrain.id]! - amount;
+      _cash += amount * activeStrain.sellPrice;
       notifyListeners();
       _throttleSave();
     }
@@ -378,13 +453,11 @@ class GameState extends ChangeNotifier {
   }
 
   void triggerBust() {
-    // Basic prestige calculation mapping net earnings to Cred
     _streetCred += (_cash / 1000).floor() + 1; 
     _totalBusts++;
 
-    // Reset loop
     _cash = 0;
-    _weedStash = 0;
+    stash.updateAll((key, value) => 0.0);
     for (var u in upgrades) {
       u.level = 0;
     }
@@ -393,5 +466,3 @@ class GameState extends ChangeNotifier {
     _saveData();
   }
 }
-
-
