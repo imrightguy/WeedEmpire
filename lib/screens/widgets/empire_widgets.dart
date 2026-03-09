@@ -139,15 +139,13 @@ class _EmpireButtonState extends State<EmpireButton> with SingleTickerProviderSt
                 widget.icon!,
                 const SizedBox(width: 8),
               ],
-              Flexible(
-                child: Text(
-                  widget.text,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.bangers(
-                    fontSize: 20,
-                    color: textColor,
-                    letterSpacing: 1.2,
-                  ),
+              Text(
+                widget.text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.bangers(
+                  fontSize: 20,
+                  color: textColor,
+                  letterSpacing: 1.2,
                 ),
               ),
             ],

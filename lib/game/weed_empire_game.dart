@@ -1,19 +1,38 @@
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
+import 'package:flame/experimental.dart';
 import 'package:flutter/material.dart';
 import '../state/game_state.dart';
 import 'components/customer_spawner.dart';
+import 'components/player_avatar_component.dart';
+import 'components/map_manager.dart';
+import 'components/business_component.dart';
+import 'components/mother_plant_component.dart';
 
 // The core Flame Game class managing 2D rendering and loop.
-class WeedEmpireGame extends FlameGame with HasCollisionDetection {
+class WeedEmpireGame extends FlameGame with TapCallbacks, DragCallbacks, HasCollisionDetection {
   final GameState gameState;
-  late final SpriteComponent _background;
-  late final SpriteComponent _weedPlant;
-  late final CustomerSpawner _customerSpawner;
   
-  String _currentBgAsset = '';
+  late final World gameWorld;
+  late final CameraComponent gameCamera;
+  
+  late final SpriteComponent _backgroundMap;
+  late final MotherPlantComponent _motherPlant;
+  late final CustomerSpawner _customerSpawner;
+  late final PlayerAvatarComponent _playerAvatar;
+  late final MapManager _mapManager;
+  late final JoystickComponent _joystick;
 
+  // External UI callbacks to open business modals
+  final Map<BusinessType, VoidCallback> businessCallbacks = {};
+  
   WeedEmpireGame({required this.gameState});
+
+  // Method to set business callbacks from the UI layer
+  void setBusinessCallbacks(Map<BusinessType, VoidCallback> callbacks) {
+    businessCallbacks.addAll(callbacks);
+  }
 
   @override
   Color backgroundColor() => const Color(0xff222222);
@@ -22,35 +41,65 @@ class WeedEmpireGame extends FlameGame with HasCollisionDetection {
   Future<void> onLoad() async {
     super.onLoad();
 
-    // Load background
-    _currentBgAsset = gameState.currentLocation.assetPath;
-    final bgSprite = await loadSprite(_currentBgAsset);
-    _background = SpriteComponent(
+    // 1. Initialize World and Camera
+    gameWorld = World();
+    await add(gameWorld);
+
+    gameCamera = CameraComponent(world: gameWorld);
+    // Align camera center to 0,0 in the world
+    gameCamera.viewfinder.anchor = Anchor.center;
+    await add(gameCamera);
+
+    // 2. Load the large neighborhood map into the World
+    final bgSprite = await loadSprite('world_map.png');
+    
+    // Make the map arbitrarily large (e.g., 2500x2500)
+    _backgroundMap = SpriteComponent(
       sprite: bgSprite,
-      size: Vector2(size.x, size.y), // Scale to fill the screen initially
+      size: Vector2(2500, 2500), 
+      anchor: Anchor.center, 
+      priority: -1000,
     );
-    add(_background);
+    await gameWorld.add(_backgroundMap);
 
-    // Load weed plant
-    final plantSprite = await loadSprite('weed_plant.png');
-    
-    // Calculate a nice size for the plant (maybe 1/3 of the screen height)
-    final plantHeight = size.y * 0.4;
-    final plantWidth = plantHeight * (plantSprite.srcSize.x / plantSprite.srcSize.y);
-
-    _weedPlant = SpriteComponent(
-      sprite: plantSprite,
-      size: Vector2(plantWidth, plantHeight),
-      anchor: Anchor.bottomCenter,
+    // Set camera bounds to not pan off the edge of the background map
+    gameCamera.setBounds(
+      Rectangle.fromCenter(
+        center: Vector2.zero(), 
+        size: Vector2(2500, 2500)
+      ),
     );
-    
-    // Position it roughly in the center-bottom of the screen (on some grass/dirt)
-    _weedPlant.position = Vector2(size.x / 2, size.y * 0.85);
-    add(_weedPlant);
 
-    // Start spawning customers
+    // 3. Initialize MapManager to spawn businesses
+    _mapManager = MapManager(onBusinessTap: businessCallbacks);
+    await gameWorld.add(_mapManager);
+
+    // 4. Load Mother Plant (Center Landmark)
+    _motherPlant = MotherPlantComponent(
+      position: Vector2(0, 150),
+      size: Vector2(250, 300),
+      onTap: () => businessCallbacks[BusinessType.lab]?.call(),
+    );
+    await gameWorld.add(_motherPlant);
+
+    // 5. Start spawning customers in the world
     _customerSpawner = CustomerSpawner(gameState: gameState);
-    add(_customerSpawner);
+    await gameWorld.add(_customerSpawner);
+
+    // 6. Load the Player Avatar
+    _playerAvatar = PlayerAvatarComponent();
+    await gameWorld.add(_playerAvatar);
+
+    // 7. Add Joystick for movement
+    final knobPaint = Paint()..color = Colors.white.withOpacity(0.5);
+    final backgroundPaint = Paint()..color = Colors.black.withOpacity(0.3);
+    _joystick = JoystickComponent(
+      knob: CircleComponent(radius: 30, paint: knobPaint),
+      background: CircleComponent(radius: 60, paint: backgroundPaint),
+      margin: const EdgeInsets.only(left: 40, bottom: 40),
+      priority: 1000,
+    );
+    await add(_joystick);
   }
 
   @override
@@ -58,31 +107,34 @@ class WeedEmpireGame extends FlameGame with HasCollisionDetection {
     super.update(dt);
     // Drive the idle simulation forward based on the real-time game loop
     gameState.tick(dt);
-    
-    // Check if location changed
-    if (isLoaded && _currentBgAsset != gameState.currentLocation.assetPath) {
-      _currentBgAsset = gameState.currentLocation.assetPath;
-      _updateBackgroundSprite();
+
+    if (!gameState.isGodMode) {
+      if (!_joystick.delta.isZero()) {
+        _playerAvatar.moveWithJoystick(_joystick.delta);
+      }
+      gameCamera.follow(_playerAvatar);
+    } else {
+      gameCamera.stop();
     }
   }
 
-  Future<void> _updateBackgroundSprite() async {
-    _background.sprite = await loadSprite(_currentBgAsset);
+  // --- Input Handlers ---
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!gameState.isGodMode) {
+      final worldPos = gameCamera.globalToLocal(event.canvasPosition);
+      
+      // Check if we hit a building (for UI feedback or interaction, movement is joystick-only now)
+      final hitBuilding = gameWorld.componentsAtPoint(worldPos).whereType<BusinessComponent>().isNotEmpty;
+    }
   }
 
   @override
-  void onGameResize(Vector2 size) {
-    super.onGameResize(size);
-    // Ensure background scales to fill the new layout if the window is resized
-    if (isLoaded) {
-      _background.size = size;
-
-      final plantHeight = size.y * 0.4;
-      final plantWidth = plantHeight * (_weedPlant.sprite!.srcSize.x / _weedPlant.sprite!.srcSize.y);
-      _weedPlant.size = Vector2(plantWidth, plantHeight);
-      _weedPlant.position = Vector2(size.x / 2, size.y * 0.85);
+  void onDragUpdate(DragUpdateEvent event) {
+    if (gameState.isGodMode) {
+      // Invert the delta because dragging the screen left means the camera moves right over the world
+      gameCamera.viewfinder.position -= event.localDelta;
     }
   }
 }
-
-

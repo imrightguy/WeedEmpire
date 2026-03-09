@@ -23,25 +23,26 @@ class CustomerComponent extends PositionComponent with TapCallbacks, HasGameRefe
   Future<void> onLoad() async {
     super.onLoad();
 
-    // Placeholder shape for a customer (e.g., a stick figure or colored rectangle)
-    add(RectangleComponent(
+    // Load customer sprite
+    final sprite = await game.loadSprite('customer.png');
+    add(SpriteComponent(
+      sprite: sprite,
       size: size,
-      paint: Paint()..color = Colors.blueAccent,
     ));
 
     // Text showing what they want
     _textBadge = TextComponent(
       text: '${amountWanted}g',
-      position: Vector2(size.x / 2, -15),
+      position: Vector2(size.x / 2, -20),
       anchor: Anchor.center,
       textRenderer: TextPaint(
-        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
       ),
     );
     add(_textBadge);
 
-    // Start on the left side of the screen
-    position = Vector2(-size.x, game.size.y * 0.7 + (Random().nextDouble() * 50));
+    // Start on the left side of the screen, walking across the bottom half
+    position = Vector2(-size.x, game.size.y * 0.65 + (Random().nextDouble() * 30));
   }
 
   @override

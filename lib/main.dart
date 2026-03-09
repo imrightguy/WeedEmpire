@@ -1,37 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:flame/game.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'state/game_state.dart';
-import 'screens/responsive_layout.dart';
-import 'screens/business_menu.dart';
+import 'screens/main_screen.dart';
 import 'game/weed_empire_game.dart';
-import 'services/ad_service.dart';
-import 'services/play_games_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize monetization & platform services
-  AdService().initialize();
-  PlayGamesService().signIn();
+  // Initialize monetization & platform services (Disabled for local testing)
+  // AdService().initialize();
+  // PlayGamesService().signIn();
 
   final gameState = GameState();
   // Fire and forget initialization. The UI will show defaults and update once loaded.
   gameState.initSaveData(); 
+
+  final gameInstance = WeedEmpireGame(gameState: gameState);
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: gameState),
       ],
-      child: const WeedEmpireApp(),
+      child: WeedEmpireApp(gameInstance: gameInstance),
     ),
   );
 }
 
 class WeedEmpireApp extends StatelessWidget {
-  const WeedEmpireApp({super.key});
+  final WeedEmpireGame gameInstance;
+  const WeedEmpireApp({super.key, required this.gameInstance});
 
   @override
   Widget build(BuildContext context) {
@@ -42,15 +47,7 @@ class WeedEmpireApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.black,
         textTheme: GoogleFonts.oswaldTextTheme(ThemeData.dark().textTheme),
       ),
-      home: Consumer<GameState>(
-        builder: (context, gameState, child) {
-          return ResponsiveLayout(
-            // GameWorld embedded in Flutter widget tree
-            gameArea: GameWidget(game: WeedEmpireGame(gameState: gameState)),
-            menuArea: const BusinessMenu(),
-          );
-        },
-      ),
+      home: MainScreen(gameInstance: gameInstance),
     );
   }
 }

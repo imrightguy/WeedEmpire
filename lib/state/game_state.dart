@@ -333,11 +333,19 @@ class GameState extends ChangeNotifier {
 
   bool _enableVisualUpgrades = true;
   bool get enableVisualUpgrades => _enableVisualUpgrades;
+  
+  bool _isGodMode = true;
+  bool get isGodMode => _isGodMode;
 
   void toggleVisualUpgrades(bool value) {
      _enableVisualUpgrades = value;
      notifyListeners();
      _saveData();
+  }
+
+  void toggleGodMode() {
+    _isGodMode = !_isGodMode;
+    notifyListeners();
   }
 
   Future<void> initSaveData() async {

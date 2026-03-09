@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Replace "0000000000" with your actual Google Play Games App ID -->
+    <!-- You get this from the Play Console -> Play Games Services -> Configuration -->
+    <string name="app_id">0000000000</string>
+</resources>
